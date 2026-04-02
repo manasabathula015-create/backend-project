@@ -9,7 +9,6 @@ CORS(app)
 
 total = 0
 today_total = 0
-
 users = {}
 current_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -31,13 +30,11 @@ def submit():
 
     count = int(count)
 
-    # Reset daily count if new day
     today = datetime.now().strftime("%Y-%m-%d")
     if today != current_date:
         today_total = 0
         current_date = today
 
-    # Unique user logic
     if mobile in users:
         users[mobile]["count"] += count
     else:
@@ -70,5 +67,5 @@ def download():
 
     return send_file(file_path, as_attachment=True)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
