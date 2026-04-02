@@ -2,27 +2,14 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import csv
 import os
-from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
 
 total = 0
-today_total = 0
 
-# Structure:
-# users = {
-#   "mobile": {
-#       "name": "User",
-#       "dates": {
-#           "2026-04-02": 5
-#       }
-#   }
-# }
+# Unique users based on mobile
 users = {}
-
-def get_today():
-    return datetime.now().strftime("%Y-%m-%d")
 
 @app.route('/')
 def home():
@@ -30,7 +17,7 @@ def home():
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    global total, today_total, users
+    global total, users
 
     data = request.json
     name = data.get('name')
@@ -41,30 +28,24 @@ def submit():
         return jsonify({"error": "All fields required"}), 400
 
     count = int(count)
-    today = get_today()
 
-    # If user not exists
-    if mobile not in users:
+    # If user already exists (same mobile)
+    if mobile in users:
+        users[mobile]["count"] += count
+    else:
+        # New unique user
         users[mobile] = {
             "name": name,
-            "dates": {}
+            "count": count
         }
 
-    # If today's entry exists → increase count
-    if today in users[mobile]["dates"]:
-        users[mobile]["dates"][today] += count
-    else:
-        users[mobile]["dates"][today] = count
-
     total += count
-    today_total += count
 
     return jsonify({
-        "message": "Count updated",
-        "date": today,
-        "userTodayCount": users[mobile]["dates"][today],
-        "totalCount": total,
-        "todayCount": today_total
+        "message": "Success",
+        "name": users[mobile]["name"],
+        "userTotalCount": users[mobile]["count"],
+        "totalCount": total
     })
 
 @app.route('/download')
@@ -73,12 +54,10 @@ def download():
 
     with open(file_path, "w", newline="") as file:
         writer = csv.writer(file)
-        writer.writerow(["Name", "Mobile", "Date", "Count"])
+        writer.writerow(["Name", "Mobile", "Count"])
 
         for mobile, data in users.items():
-            name = data["name"]
-            for date, count in data["dates"].items():
-                writer.writerow([name, mobile, date, count])
+            writer.writerow([data["name"], mobile, data["count"]])
 
     return send_file(file_path, as_attachment=True)
 
