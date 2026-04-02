@@ -7,46 +7,37 @@ app = Flask(__name__)
 CORS(app)
 
 total = 0
-users = {}
-
-@app.route('/')
-def home():
-    return "Server is running"
+today_total = 0
+records = []
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    global total, users
+    global total, today_total, records
 
-    try:
-        data = request.json
-        name = data.get('name')
-        mobile = data.get('mobile')
-        count = data.get('count')
+    data = request.json
+    name = data.get('name')
+    mobile = data.get('mobile')
+    count = data.get('count')
 
-        if not name or not mobile or count is None:
-            return jsonify({"error": "All fields required"}), 400
+    if not name or not mobile or not count:
+        return jsonify({"error": "All fields required"}), 400
 
-        count = int(count)
+    total += int(count)
+    today_total += int(count)
 
-        if mobile in users:
-            users[mobile]["count"] += count
-        else:
-            users[mobile] = {
-                "name": name,
-                "count": count
-            }
+    records.append({
+        "name": name,
+        "mobile": mobile,
+        "count": count
+    })
 
-        total += count
+    return jsonify({
+        "totalCount": total,
+        "todayCount": today_total,
+        "individualCount": count
+    })
 
-        return jsonify({
-            "totalCount": total,
-            "userTotalCount": users[mobile]["count"]
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/download')
+@app.route('/download', methods=['GET'])
 def download():
     file_path = os.path.join(os.getcwd(), "report.csv")
 
@@ -54,10 +45,9 @@ def download():
         writer = csv.writer(file)
         writer.writerow(["Name", "Mobile", "Count"])
 
-        for mobile, data in users.items():
-            writer.writerow([data["name"], mobile, data["count"]])
+        for record in records:
+            writer.writerow([record["name"], record["mobile"], record["count"]])
 
     return send_file(file_path, as_attachment=True)
 
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+app.run(port=5000)
