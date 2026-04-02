@@ -2,12 +2,16 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import csv
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
 
 total = 0
+today_total = 0
+
 users = {}
+current_date = datetime.now().strftime("%Y-%m-%d")
 
 @app.route('/')
 def home():
@@ -15,24 +19,23 @@ def home():
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    global total, users
+    global total, today_total, users, current_date
 
     data = request.json
     name = data.get('name')
     mobile = data.get('mobile')
     count = data.get('count')
 
-    # Validation
     if not name or not mobile or count is None:
         return jsonify({"error": "All fields required"}), 400
 
-    if len(str(mobile)) < 10:
-        return jsonify({"error": "Enter valid mobile number"}), 400
+    count = int(count)
 
-    try:
-        count = int(count)
-    except:
-        return jsonify({"error": "Count must be a number"}), 400
+    # Reset daily count if new day
+    today = datetime.now().strftime("%Y-%m-%d")
+    if today != current_date:
+        today_total = 0
+        current_date = today
 
     # Unique user logic
     if mobile in users:
@@ -44,12 +47,14 @@ def submit():
         }
 
     total += count
+    today_total += count
 
     return jsonify({
         "message": "Success",
         "name": users[mobile]["name"],
         "userTotalCount": users[mobile]["count"],
-        "totalCount": total
+        "totalCount": total,
+        "todayCount": today_total
     })
 
 @app.route('/download')
