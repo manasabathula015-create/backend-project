@@ -7,8 +7,6 @@ app = Flask(__name__)
 CORS(app)
 
 total = 0
-
-# Unique users based on mobile
 users = {}
 
 @app.route('/')
@@ -24,16 +22,22 @@ def submit():
     mobile = data.get('mobile')
     count = data.get('count')
 
-    if not name or not mobile or not count:
+    # Validation
+    if not name or not mobile or count is None:
         return jsonify({"error": "All fields required"}), 400
 
-    count = int(count)
+    if len(str(mobile)) < 10:
+        return jsonify({"error": "Enter valid mobile number"}), 400
 
-    # If user already exists (same mobile)
+    try:
+        count = int(count)
+    except:
+        return jsonify({"error": "Count must be a number"}), 400
+
+    # Unique user logic
     if mobile in users:
         users[mobile]["count"] += count
     else:
-        # New unique user
         users[mobile] = {
             "name": name,
             "count": count
