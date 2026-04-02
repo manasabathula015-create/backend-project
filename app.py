@@ -30,11 +30,13 @@ def submit():
 
     count = int(count)
 
+    # Reset daily count
     today = datetime.now().strftime("%Y-%m-%d")
     if today != current_date:
         today_total = 0
         current_date = today
 
+    # User logic
     if mobile in users:
         users[mobile]["count"] += count
     else:
