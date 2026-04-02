@@ -7,9 +7,8 @@ app = Flask(__name__)
 CORS(app)
 
 total = 0
-
-# Unique users based on mobile
-users = {}
+today_total = 0
+records = []
 
 @app.route('/')
 def home():
@@ -17,7 +16,7 @@ def home():
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    global total, users
+    global total, today_total, records
 
     data = request.json
     name = data.get('name')
@@ -27,25 +26,19 @@ def submit():
     if not name or not mobile or not count:
         return jsonify({"error": "All fields required"}), 400
 
-    count = int(count)
+    total += int(count)
+    today_total += int(count)
 
-    # If user already exists (same mobile)
-    if mobile in users:
-        users[mobile]["count"] += count
-    else:
-        # New unique user
-        users[mobile] = {
-            "name": name,
-            "count": count
-        }
-
-    total += count
+    records.append({
+        "name": name,
+        "mobile": mobile,
+        "count": count
+    })
 
     return jsonify({
-        "message": "Success",
-        "name": users[mobile]["name"],
-        "userTotalCount": users[mobile]["count"],
-        "totalCount": total
+        "totalCount": total,
+        "todayCount": today_total,
+        "individualCount": count
     })
 
 @app.route('/download')
@@ -56,10 +49,11 @@ def download():
         writer = csv.writer(file)
         writer.writerow(["Name", "Mobile", "Count"])
 
-        for mobile, data in users.items():
-            writer.writerow([data["name"], mobile, data["count"]])
+        for r in records:
+            writer.writerow([r["name"], r["mobile"], r["count"]])
 
     return send_file(file_path, as_attachment=True)
 
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+
+    if __name__ == "__main__":
+        app.run(host='0.0.0.0', port=5000)
